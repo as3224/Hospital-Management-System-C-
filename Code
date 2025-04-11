@@ -1,0 +1,225 @@
+// Modern C++ implementation of Hospital Management System
+#include <iostream>
+#include <string>
+#include <list>
+#include <unordered_set>
+#include <limits>
+#include <vector>
+using namespace std;
+
+class Patient {
+public:
+    long long id;
+    string firstName;
+    string lastName;
+    int age;
+    string bloodGroup;
+    char gender;
+
+    Patient() = default;
+    Patient(long long id, const string& fn, const string& ln, int age, const string& bg, char gender)
+        : id(id), firstName(fn), lastName(ln), age(age), bloodGroup(bg), gender(gender) {}
+
+    void display() const {
+        cout << "\n-----------------------------";
+        cout << "\nName: " << firstName << " " << lastName;
+        cout << "\nGender: " << gender;
+        cout << "\nAge: " << age;
+        cout << "\nBlood Group: " << bloodGroup;
+        cout << "\nID: " << id;
+        cout << "\n-----------------------------\n";
+    }
+};
+
+class HospitalQueue {
+private:
+    list<Patient> patients;
+    unordered_set<long long> patientIds; // For fast duplicate checks
+    string departmentName;
+
+    bool isValidBloodGroup(const string& bg) {
+        static unordered_set<string> validBG = {"A+","A-","B+","B-","O+","O-","AB+","AB-",
+                                                "a+","a-","b+","b-","o+","o-","ab+","ab-"};
+        return validBG.find(bg) != validBG.end();
+    }
+
+public:
+    HospitalQueue(const string& name) : departmentName(name) {}
+
+    void addPatient(bool critical = false) {
+        string fn, ln, bg;
+        int age;
+        char gender;
+        long long id;
+
+        cout << "\nEnter First Name: "; cin >> fn;
+        cout << "Enter Last Name: "; cin >> ln;
+
+        do {
+            cout << "Enter Blood Group (e.g., A+, O-): ";
+            cin >> bg;
+            if (!isValidBloodGroup(bg)) cout << "Invalid blood group. Try again.\n";
+        } while (!isValidBloodGroup(bg));
+
+        cout << "Enter Gender (M/F): "; cin >> gender;
+        cout << "Enter Age: "; cin >> age;
+        cout << "Enter Unique ID (e.g., Mobile Number): "; cin >> id;
+
+        if (patientIds.count(id)) {
+            cout << "\nDuplicate ID. Patient not added.\n";
+            return;
+        }
+
+        Patient p(id, fn, ln, age, bg, gender);
+        if (critical)
+            patients.push_front(p);
+        else
+            patients.push_back(p);
+
+        patientIds.insert(id);
+        cout << "\nPatient added successfully.\n";
+        p.display();
+    }
+
+    void removePatientById() {
+        if (patients.empty()) {
+            cout << "\nNo patients in queue.\n";
+            return;
+        }
+
+        long long id;
+        cout << "Enter ID of patient to remove: ";
+        cin >> id;
+
+        for (auto it = patients.begin(); it != patients.end(); ++it) {
+            if (it->id == id) {
+                patients.erase(it);
+                patientIds.erase(id);
+                cout << "Patient with ID " << id << " removed from the queue.\n";
+                return;
+            }
+        }
+
+        cout << "Patient with ID " << id << " not found.\n";
+    }
+
+    void searchPatientById() const {
+        if (patients.empty()) {
+            cout << "\nNo patients in queue.\n";
+            return;
+        }
+
+        long long id;
+        cout << "Enter ID of patient to search: ";
+        cin >> id;
+
+        for (const auto& p : patients) {
+            if (p.id == id) {
+                cout << "\nPatient found:\n";
+                p.display();
+                return;
+            }
+        }
+        cout << "Patient with ID " << id << " not found.\n";
+    }
+
+    void callNextPatient() {
+        if (patients.empty()) {
+            cout << "\nNo patients in queue.\n";
+            return;
+        }
+
+        Patient p = patients.front();
+        patients.pop_front();
+        patientIds.erase(p.id);
+        cout << "\nCalling patient for consultation:\n";
+        p.display();
+    }
+
+    void displayAll() const {
+        if (patients.empty()) {
+            cout << "\nNo patients in " << departmentName << ".\n";
+            return;
+        }
+
+        cout << "\nList of Patients in " << departmentName << ":\n";
+        for (const auto& p : patients) {
+            p.display();
+        }
+    }
+
+    string getName() const { return departmentName; }
+};
+
+int main() {
+    vector<HospitalQueue> departments = {
+        HospitalQueue("General Clinic"),
+        HospitalQueue("Heart Clinic"),
+        HospitalQueue("Lung Clinic"),
+        HospitalQueue("Plastic Surgery")
+    };
+
+    while (true) {
+        cout << "\n\n------ Hospital Management System ------\n";
+        cout << "Departments:\n";
+        for (size_t i = 0; i < departments.size(); ++i) {
+            cout << i + 1 << ". " << departments[i].getName() << "\n";
+        }
+        cout << departments.size() + 1 << ". Exit the System\n";
+        cout << "Select Department/Option: ";
+
+        int deptChoice;
+        cin >> deptChoice;
+        if (cin.fail()) {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            deptChoice = -1;
+        }
+
+        if (deptChoice < 1 || deptChoice > (int)departments.size() + 1) {
+            cout << "Invalid choice. Try again.\n";
+            continue;
+        }
+        if (deptChoice == departments.size() + 1) {
+            cout << "\nThank you for using the system.\n";
+            break;
+        }
+
+        HospitalQueue& selected = departments[deptChoice - 1];
+        int choice = 0;
+        do {
+            cout << "\n--- " << selected.getName() << " Menu ---\n";
+            cout << "1. Add Normal Patient\n";
+            cout << "2. Add Critical Patient\n";
+            cout << "3. Call Next Patient\n";
+            cout << "4. Display All Patients\n";
+            cout << "5. Remove Patient by ID\n";
+            cout << "6. Search Patient by ID\n";
+            cout << "7. Change Department\n";
+            cout << "8. Exit the System\n";
+            cout << "Choose: ";
+            cin >> choice;
+            if (cin.fail()) {
+                cin.clear();
+                cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                choice = -1;
+            }
+
+            switch (choice) {
+                case 1: selected.addPatient(false); break;
+                case 2: selected.addPatient(true); break;
+                case 3: selected.callNextPatient(); break;
+                case 4: selected.displayAll(); break;
+                case 5: selected.removePatientById(); break;
+                case 6: selected.searchPatientById(); break;
+                case 7: break;
+                case 8:
+                    cout << "\nThank you for using the system.\n";
+                    exit(0);
+                default: cout << "Invalid option.\n";
+            }
+        } while (choice != 7);
+    }
+
+    return 0;
+}
